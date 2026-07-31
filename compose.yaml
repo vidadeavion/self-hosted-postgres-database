@@ -2,7 +2,67 @@ services:
 
 ##########################################
 ##
-## relational data
+## napkin exchange / network instratucture
+##
+##########################################
+
+    napkin-exchange-proxy:
+
+        container_name: napkin-exchange-proxy
+
+        image: nginxproxy/nginx-proxy
+
+        restart: unless-stopped
+
+        ports:
+
+            - 80:80
+
+            - 443:443
+
+        volumes:
+
+            - /var/run/docker.sock:/tmp/docker.sock:ro
+
+            - /var/docker/nginx/html:/usr/share/nginx/html
+
+            - /var/docker/nginx/certs:/etc/nginx/certs
+
+            - /var/docker/nginx/vhost:/etc/nginx/vhost.d
+
+        logging:
+
+            options:
+
+                max-size: "10m"
+
+                max-file: "3"
+
+    napkin-exchange-letsencrypt:
+
+        container_name: napkin-exchange-letsencrypt
+
+        image: jrcs/letsencrypt-nginx-proxy-companion
+
+        restart: unless-stopped
+
+        volumes_from:
+
+            - napkin-exchange-proxy
+
+        volumes:
+
+            - /var/run/docker.sock:/var/run/docker.sock
+
+            - /var/docker/nginx/acme:/etc/acme.sh
+
+        environment:
+
+            DEFAULT_EMAIL: troy@softwareshinobi.com
+            
+##########################################
+##
+## Relational Data / Postgres / Server
 ##
 ##########################################
 
@@ -20,7 +80,7 @@ services:
 
         volumes: 
 
-            - /volumes/database:/var/lib/postgresql/data
+            - /volumes/embanet/postgres/database:/var/lib/postgresql/data
 
         environment: 
 
@@ -30,11 +90,19 @@ services:
 
             - POSTGRES_PASSWORD=shinobi
 
-    postgres-database-admin:
+##########################################
+##
+## Relational Data / Postgres / Dashboard
+##
+##########################################
 
-        container_name: postgres-database-admin
+    postgres.monterrey.embanet.online:
+
+        container_name: postgres.monterrey.embanet.online
 
         image: dpage/pgadmin4
+        
+        user: "5050:5050"
 
         restart: unless-stopped
 
@@ -48,10 +116,14 @@ services:
             
         volumes:
 
-            - /volumes/database:/var/lib/pgadmin            
+            - /tmp/sandbox/volumes/embanet/postgres/admin:/var/lib/pgadmin      
 
         environment:
         
             PGADMIN_DEFAULT_EMAIL: user@loremipsum.com
             
             PGADMIN_DEFAULT_PASSWORD: shinobi
+
+            VIRTUAL_HOST: postgres.monterrey.embanet.online
+
+            LETSENCRYPT_HOST: postgres.monterrey.embanet.online
